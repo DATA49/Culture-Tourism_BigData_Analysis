@@ -1,18 +1,27 @@
+import re
+
 import pandas as pd
 from selenium import webdriver
 import time as time
 import getpass
 from time import sleep
+from selenium.common.exceptions import WebDriverException
 
 # 인스타그램 로그인 정보 받기
 username = getpass.getpass("Input ID : ")  # User ID
 password = getpass.getpass("Input PWD : ")  # User PWD
 
 PATH = 'chromedriver.exe'
-driver = webdriver.Chrome(executable_path=PATH)
+chrome_options = webdriver.ChromeOptions()
+
+chrome_options.add_argument("--disable-gpu")
+# chrome_options.add_argument("disable-infobars")
+chrome_options.add_argument("--disable-extensions")
+# chrome_options.add_argument('headless') # headless 모드 설정
+# chrome_options.add_argument("User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36")
+driver = webdriver.Chrome(executable_path=PATH, chrome_options=chrome_options)
 driver.get('https://www.instagram.com/')
 sleep(2)
-
 elem = driver.find_element_by_name('username')
 elem.send_keys(username)
 elem = driver.find_element_by_name('password')
@@ -21,9 +30,9 @@ sleep(1)
 
 # 로그인 클릭 버튼
 driver.find_element_by_css_selector('.sqdOP.L3NKy.y3zKF').click()
-sleep(5)
+sleep(20)
 
-hash_tag = '관광'
+hash_tag = '축제'  # 여행스타그램,
 driver.get(f'https://www.instagram.com/explore/tags/{hash_tag}/')
 sleep(10)
 
@@ -36,9 +45,10 @@ insta_dict = {'id': [],  # UserId
 # 첫 번째 게시물 클릭
 first_post = driver.find_element_by_class_name('eLAPa')
 first_post.click()
+sleep(2)
 
 count_extract = 0
-wish_num = 10  # 크롤링할 게시물 개수
+wish_num = 50000000  # 크롤링할 게시물 개수
 start = time.time()
 
 insta_obj_next_btn = 'a._65Bje.coreSpriteRightPaginationArrow'  # 다음 사진 버튼
@@ -49,18 +59,25 @@ insta_obj_main_tag = 'a.xil3i'  # 본문 해시태그
 # insta_obj_comment_id = 'h2_6lAjh'  # 댓글 아이디
 # insta_obj_comment_text = 'a.xil3i'
 
+unable_err_cnt = 0
+
 while True:
     try:
-        if driver.find_element_by_css_selector(insta_obj_next_btn):
-            # if count_extract % 20 == 0:
-            print('{}번째 수집 중'.format(count_extract), time.time() - start, sep='\t')
+        if count_extract % 20 == 0:
+            print('{}번째 수집 중'.format(count_extract + 1), time.time() - start, sep='\t')
+        elif count_extract % 151 == 0:
+            test = pd.DataFrame.from_dict(insta_dict)
+            print(test.head)
+            test.to_csv(f'{hash_tag}_insta{count_extract}.csv', encoding='utf-8-sig')
+            sleep(120)
 
+        if driver.find_element_by_css_selector(insta_obj_next_btn):
             # id 정보 수집
             try:
                 user_id = driver.find_element_by_css_selector(insta_obj_user_id).text
                 insta_dict['id'].append(user_id)
             except:
-                user_id = driver.find_element_by_css_selector('div.C4VMK').text.split()[0]
+                user_id = driver.find_element_by_css_selector(insta_obj_main_text).text.split()[0]
                 insta_dict['id'].append(user_id)
 
             # 날짜정보 수집
@@ -131,14 +148,31 @@ while True:
                 break
 
             driver.find_element_by_css_selector(insta_obj_next_btn).click()
-            sleep(1.5)
+            sleep(3)
 
         else:
             break
 
+
+    except WebDriverException as e:
+        if 'reachable' in str(e):
+            print(e)
+            test = pd.DataFrame.from_dict(insta_dict)
+            print(test.head)
+            test.to_csv(f'{hash_tag}_insta{count_extract}.csv', encoding='utf-8-sig')
+            exit(0)
+        elif 'Unable' in str(e):
+            print(e)
+            # unable_err_cnt += 1
+            sleep(10)
+        else:
+            print(e)
+            driver.find_element_by_css_selector(insta_obj_next_btn).click()
+            sleep(10)
+
     except:
         driver.find_element_by_css_selector(insta_obj_next_btn).click()
-        sleep(2)
+        sleep(5)
 
 test = pd.DataFrame.from_dict(insta_dict)
 print(test.head)
