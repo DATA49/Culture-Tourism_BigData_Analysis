@@ -2,15 +2,9 @@ import csv
 import pandas as pd
 from selenium import webdriver
 import time
-from konlpy.tag import Okt
-from nltk import Text
-from matplotlib import font_manager, rc
 from selenium.common.exceptions import WebDriverException
-from wordcloud import WordCloud
 
-import matplotlib.pyplot as plt
-
-PATH = "chromedriver.exe"  # 웹드라이버 실행
+PATH = "../chromedriver.exe"  # 웹드라이버 실행
 driver = webdriver.Chrome(PATH)  # 드라이버 경로 설정
 
 url_list = []  # 초기 블로그 url을 저장하기 위한 변수
@@ -87,38 +81,6 @@ for word, url in url_list:  # 저장했던 블로그 하나씩 순회
                      # 'hashtag': []  # 해시태그
                      }
 
-# # 트위터에서 만든 소셜 분석을 위한 형태소 분석기 Okt 사용
-# okt = Okt()
-# myList = okt.pos(content_list, norm=True, stem=True)  # 모든 형태소 추출
-# myList_filter = [x for x, y in myList if y in ['Noun']]
-#
-# Okt = Text(myList_filter, name="Okt")
-#
-# # 그래프에서 한글이 출력이 안되는 문제 해결 (ㅁㅁㅁ 처럼 출력됨)
-# font_location = "c:/Windows/Fonts/malgun.ttf"
-# font_name = font_manager.FontProperties(fname=font_location).get_name()
-# rc('font', family=font_name)
-#
-# # 그래프 x, y 라벨 설정
-# plt.xlabel("명사")
-# plt.ylabel("빈도")
-#
-# # 그래프에서 x, y 값을 설정
-# wordInfo = dict()
-# for tags, counts in Okt.vocab().most_common(50):
-#     if (len(str(tags)) > 1):
-#         wordInfo[tags] = counts
-#
-# values = sorted(wordInfo.values(), reverse=True)
-# keys = sorted(wordInfo, key=wordInfo.get, reverse=True)
-#
-# # 그래프 값 설정
-# plt.bar(range(len(wordInfo)), values, align='center')
-# plt.xticks(range(len(wordInfo)), list(keys), rotation='70')
-# plt.show()
-#
-# # wordCloud 출력
-# wc = WordCloud(width=1000, height=600, background_color="white", font_path=font_location, max_words=50)
-# plt.imshow(wc.generate_from_frequencies(Okt.vocab()))
-# plt.axis("off")
-# plt.show()
+test = pd.DataFrame.from_dict(blog_dict)
+print(test.head)
+test.to_csv(f'{search_words[-1]}_blog_crawling.csv', encoding='utf-8-sig')  # 키워드별로 저장
