@@ -5,6 +5,7 @@ import time
 from konlpy.tag import Okt
 from nltk import Text
 from matplotlib import font_manager, rc
+from selenium.common.exceptions import WebDriverException
 from wordcloud import WordCloud
 
 import matplotlib.pyplot as plt
@@ -27,17 +28,21 @@ for word in search_words:
             url = f'https://section.blog.naver.com/Search/Post.nhn?pageNo={page}&rangeType=PERIOD&orderBy=sim&startDate={sDate}&endDate={eDate}&keyword={word}'  # url 값 설정
             driver.get(url)
             time.sleep(0.8)  # 오류 방지 sleep
-            for j in range(1, 8):
-                links = driver.find_element_by_xpath(
-                    f'/html/body/ui-view/div/main/div/div/section/div[2]/div[{j}]/div/div[1]/div[1]/a[1]')
-                link = links.get_attribute('href')
-                url_list.append((word, link))
+            try:
+                for j in range(1, 8):
+                    links = driver.find_element_by_xpath(
+                        f'/html/body/ui-view/div/main/div/div/section/div[2]/div[{j}]/div/div[1]/div[1]/a[1]')
+                    link = links.get_attribute('href')
+                    url_list.append((word, link))
+            except WebDriverException as e:
+                print(e)
+                continue
         print(f"{word}의 {sDate}~{eDate} url 수집 끝")
 
 # 게시글 링크들 저장
 with open('test.csv', 'w', newline='') as f:
     writer = csv.writer(f)
-    writer.writerow(url_list)
+    writer.writerows(url_list)
 
 # 블로그 게시글 데이터를 저장할 Dictionary
 blog_dict = {'title': [],  # 제목
@@ -52,20 +57,24 @@ for word, url in url_list:  # 저장했던 블로그 하나씩 순회
     driver.switch_to.frame('mainFrame')
     content_list = ""  # 블로그 content를 누적하기 위한 변수
 
-    # 제목
-    title_object = driver.find_element_by_css_selector('div.se-module.se-module-text.se-title-text').text
-    print(title_object)
-    blog_dict['title'].append(title_object)  # 제목
+    try:
+        # 제목
+        title_object = driver.find_element_by_css_selector('div.se-module.se-module-text.se-title-text').text
+        print(title_object)
+        blog_dict['title'].append(title_object)  # 제목
 
-    # 날짜
-    date_object = driver.find_element_by_css_selector('span.se_publishDate.pcol2').text
-    blog_dict['date'].append(date_object)
+        # 날짜
+        date_object = driver.find_element_by_css_selector('span.se_publishDate.pcol2').text
+        blog_dict['date'].append(date_object)
 
-    overlays = ".se-component.se-text.se-l-default"  # 내용 크롤링
-    contents = driver.find_elements_by_css_selector(overlays)
-    for content in contents:
-        content_list = content_list + content.text  # 각 블로그의 내용을 변수에 누적함
-    blog_dict['maintext'].append(content_list)
+        overlays = ".se-component.se-text.se-l-default"  # 내용 크롤링
+        contents = driver.find_elements_by_css_selector(overlays)
+        for content in contents:
+            content_list = content_list + content.text  # 각 블로그의 내용을 변수에 누적함
+        blog_dict['maintext'].append(content_list)
+    except WebDriverException as e:
+        print(e)
+        continue
 
     if word != keyword:
         test = pd.DataFrame.from_dict(blog_dict)
@@ -77,7 +86,6 @@ for word, url in url_list:  # 저장했던 블로그 하나씩 순회
                      'maintext': [],  # 본문
                      # 'hashtag': []  # 해시태그
                      }
-
 
 # # 트위터에서 만든 소셜 분석을 위한 형태소 분석기 Okt 사용
 # okt = Okt()
